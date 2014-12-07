@@ -21,8 +21,9 @@ const (
 
 type IRCUser struct {
 	Name string
-	Ident string
+	User string
 	Nick string
+	Host string
 	connection net.Conn
 }
 
@@ -72,6 +73,9 @@ func (user *IRCUser) Handle() {
 	var err error                           /* Error */
 
 	for {
+		// Clear the client_recv slice:
+		client_recv = make([]byte, 8192)
+		
 		client_recv_len, err = user.connection.Read(client_recv)
 
 		// Check for, and disconnect broken/disconnected clients
@@ -108,27 +112,51 @@ func (user *IRCUser) handleCommand(command string, params []string) {
 	var reply string
 
 	if command == "USER" {
-		user.Ident = params[len(params)-2]
+		user.User = lastParam(params)
 	}
 
 	if command == "NICK" {
-		user.Nick = strings.Replace(params[len(params)-2], ":", "", -1)
+		user.Nick = lastParam(params)
 
 		log.Println("D  User nick:", user.Nick)
 		
 		reply = "001 " + user.Nick + " :Welcome to the IRC chat."
-
-		
 	}
 
 	if command == "PING" {
 		reply = "PONG"
 	}
 
+	if command == "JOIN" {
+		reply = ":" + user.Ident() + " " + "JOIN" + lastParam(params)
+
+		log.Println("D Reply..." , reply)
+		user.connection.Write([]byte(reply + MESSAGE_TERMINATOR))
+		return
+	}
+
 	if len(reply) > 0 {
 		log.Println("D Sending reply... ", SERVER_IDENT, reply)
 		user.connection.Write([]byte(SERVER_IDENT + reply + MESSAGE_TERMINATOR))
 	}
+}
 
-	
+// Get's the user's ident
+func (user *IRCUser) Ident() string {
+	return user.Nick + "!" + user.User + "@" + user.connection.RemoteAddr().String()
+}
+
+
+// Gets the last parameter from a slice (including spaces)
+// Removes the prepended :
+func lastParam(params []string) string {
+	for i := range params {
+		if params[i][0] == ':' {
+			return strings.Replace(
+				strings.Join(params[i:], " "),
+				":", "", 1)
+		}
+	}
+
+	return params[len(params)-2]
 }
