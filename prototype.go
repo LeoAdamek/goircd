@@ -23,7 +23,7 @@ type IRCUser struct {
 	Name string
 	Ident string
 	Nick string
-	Remote net.Addr
+	connection net.Conn
 }
 
 // Main start-up
@@ -53,26 +53,26 @@ func main() {
 		}
 
 		// handle the client connection in a goroutine
-		go handleClient(client)
+		user := IRCUser{
+			connection: client,
+		}
 
+		go user.Handle()
+		
 	}
 	
 }
 
 
 // Handles a client connection
-func handleClient(client net.Conn) {
-
-	user := IRCUser{
-		Remote: client.RemoteAddr(),
-	}
+func (user *IRCUser) Handle() {
 	
 	client_recv     := make([]byte, 8192)   /* Received client data buffer (8kiB) */
 	var client_recv_len int                 /* Length of received client data frame */
 	var err error                           /* Error */
 
 	for {
-		client_recv_len, err = client.Read(client_recv)
+		client_recv_len, err = user.connection.Read(client_recv)
 
 		// Check for, and disconnect broken/disconnected clients
 		if err != nil && client_recv_len == 0{
@@ -95,30 +95,40 @@ func handleClient(client net.Conn) {
 		// Handle each command in a goroutine so that they are non-blocking.
 		// We can still send the client data from within the goroutine
 		// so they can still get the response to their command.
-		go user.handleCommand(client, command, params)
+		go user.handleCommand(command, params)
 
 	}
 
-	client.Close()
+	user.connection.Close()
 }
 
 // Handles a single command issued by a client
-func (user *IRCUser) handleCommand(client net.Conn, command string, params []string) {
+func (user *IRCUser) handleCommand(command string, params []string) {
 
 	var reply string
 
 	if command == "USER" {
-		user.Ident = params[len(params)-1]
-		reply = "001 leo\r\n002 localhost goircd-dev\r\n003 created today\r\n\004 new"
+		user.Ident = params[len(params)-2]
 	}
 
 	if command == "NICK" {
-		user.Nick = params[len(params)-1]
+		user.Nick = strings.Replace(params[len(params)-2], ":", "", -1)
+
+		log.Println("D  User nick:", user.Nick)
+		
+		reply = "001 " + user.Nick + " :Welcome to the IRC chat."
+
+		
+	}
+
+	if command == "PING" {
+		reply = "PONG"
 	}
 
 	if len(reply) > 0 {
 		log.Println("D Sending reply... ", SERVER_IDENT, reply)
-		client.Write([]byte(SERVER_IDENT + reply + MESSAGE_TERMINATOR))
+		user.connection.Write([]byte(SERVER_IDENT + reply + MESSAGE_TERMINATOR))
 	}
 
+	
 }
