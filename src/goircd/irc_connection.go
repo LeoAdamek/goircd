@@ -12,12 +12,14 @@ type IRCConnection struct {
 	conn net.Conn
 	User string
 	Nick string
+	events chan *Event
 }
 
 
 func NewIRCConnection(connection net.Conn) IRCConnection {
 	return IRCConnection{
 		conn: connection,
+		events: make(chan *Event, 32),
 	}
 }
 
@@ -59,18 +61,22 @@ func (c *IRCConnection) HandleConnection() {
 // Handles a single message
 func (c *IRCConnection) HandleMessage(message string) {
 
-	log.Infoln("Client ", c, " sent message " , message)
+	event, err := ParseMessage(message)
 
-	m := ParseMessage(message)
-	c.HandleCommand(m)
-}
+	if err != nil {
+		log.Errorln("Error Parsing Message: ", err)
+		return
+	}
 
-
-//
-// Handle a command
-//
-func (c *IRCConnection) HandleCommand(m Message) {
+	log.WithFields(
+		log.Fields{
+			"command" : event.Code,
+			"user" : event.User,
+			"args" : event.Args,
+		}).Info("Client Command")
 	
+	c.events <- event
+
 }
 
 //
