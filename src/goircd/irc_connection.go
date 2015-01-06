@@ -13,6 +13,8 @@ type IRCConnection struct {
 	User string
 	Nick string
 	events chan *Event
+	callbacker Callbacker
+	HasBeenWelcomed bool
 }
 
 
@@ -75,8 +77,43 @@ func (c *IRCConnection) HandleMessage(message string) {
 			"args" : event.Args,
 		}).Info("Client Command")
 	
-	c.events <- event
+	c.callback(event)
 
+}
+
+// Send a message to a client
+func (c *IRCConnection) SendMessage(parts ...string) {
+	reply := ":localhost"
+
+	for i := range parts[:len(parts)-1] {
+		reply += " " + parts[i]
+	}
+
+	reply += " :" + parts[len(parts)]
+
+	reply += "\r\n"
+
+	log.WithFields(
+		log.Fields{
+			"command": parts[0],
+			"message" : parts[len(parts)],
+		}).Info("Message Sent: " + reply)
+	
+	c.conn.Write([]byte(reply))
+}
+
+////////// IRC MESSAGES
+
+//
+// Pong
+func (c *IRCConnection) Pong(message string) {
+	c.SendMessage(PONG, message)
+}
+
+//
+// Welcome
+func (c *IRCConnection) Welcome() {
+	c.SendMessage(REP_WELCOME, c.User, "Welcome to the GoIRCd Server")
 }
 
 //

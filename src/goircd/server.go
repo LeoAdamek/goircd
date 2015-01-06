@@ -36,7 +36,7 @@ func ServeForever() {
 		user := NewIRCConnection(client)
 
 		// Each user is handled by a goroutine.
-		user.HandleConnection()
+		go user.HandleConnection()
 	}
 
 }
