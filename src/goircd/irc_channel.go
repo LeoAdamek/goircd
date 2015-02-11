@@ -12,6 +12,8 @@ type IRCChannel struct{
 	connections IRCConnectionMap
 	owner *IRCConnection
 	events chan *Event
+
+	Topic string
 }
 
 
@@ -21,6 +23,7 @@ func CreateIRCChannel(chanName string, chanOwner *IRCConnection) IRCChannel {
 		owner: chanOwner,
 		events: make(chan *Event),
 		connections: make(IRCConnectionMap),
+		Topic: "Example Topic",
 	}
 
 	return channel

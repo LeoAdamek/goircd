@@ -36,6 +36,7 @@ const (
 
 	// Numeric Server Response Codes
 	REP_WELCOME = "001"
+	REP_TOPIC = "332"
 )
 
 

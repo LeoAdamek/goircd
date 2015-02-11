@@ -157,7 +157,7 @@ func (c *IRCConnection) Join(e *Event) {
 		c.server.AddChannel(channel)
 	}
 
-	c.SendMessage(JOIN, chanName)
+	c.SendMessage(REP_TOPIC, chanName, channel.Topic)
 
 	c.channels[chanName] = channel
 }
