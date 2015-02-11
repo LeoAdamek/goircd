@@ -5,23 +5,31 @@ package main
 
 import (
 	"net"
+	"strings"
 	log "github.com/Sirupsen/logrus"
 )
 
 type IRCConnection struct {
-	conn net.Conn
+
+	/* Public */
 	User string
 	Nick string
+	HasBeenWelcomed bool
+
+	/* Private */
+	conn net.Conn
 	events chan *Event
 	callbacker Callbacker
-	HasBeenWelcomed bool
+	server *IRCServer
+	channels IRCChannelMap
 }
 
 
-func NewIRCConnection(connection net.Conn) IRCConnection {
+func NewIRCConnection(connection net.Conn, server *IRCServer) IRCConnection {
 	return IRCConnection{
 		conn: connection,
 		events: make(chan *Event, 32),
+		server: server,
 	}
 }
 
@@ -83,23 +91,27 @@ func (c *IRCConnection) HandleMessage(message string) {
 
 // Send a message to a client
 func (c *IRCConnection) SendMessage(parts ...string) {
-	reply := ":localhost"
+	var reply string
 
-	for i := range parts[:len(parts)-1] {
-		reply += " " + parts[i]
+	reply = ":localhost "
+		
+	if len(parts) > 1 {
+		reply += strings.Join(parts[:len(parts)-1], " ")
+		reply += " :" + parts[len(parts)-1]
+	} else {
+		reply += parts[0]
 	}
-
-	reply += " :" + parts[len(parts)]
-
-	reply += "\r\n"
+	
+	reply += MSG_TERM
 
 	log.WithFields(
 		log.Fields{
-			"command": parts[0],
-			"message" : parts[len(parts)],
-		}).Info("Message Sent: " + reply)
+			"ident" : c.String(),
+			"message" : reply,
+		}).Info("Sent Reply")
 	
 	c.conn.Write([]byte(reply))
+
 }
 
 ////////// IRC MESSAGES
@@ -107,13 +119,44 @@ func (c *IRCConnection) SendMessage(parts ...string) {
 //
 // Pong
 func (c *IRCConnection) Pong(message string) {
-	c.SendMessage(PONG, message)
+
+	if len(message) > 0 {
+		c.SendMessage(PONG, message)
+	} else {
+		c.SendMessage(PONG)
+	}
 }
 
 //
 // Welcome
 func (c *IRCConnection) Welcome() {
 	c.SendMessage(REP_WELCOME, c.User, "Welcome to the GoIRCd Server")
+}
+
+//
+// Info
+//
+// Sends the client their connection info
+func (c *IRCConnection) Info() {
+	c.SendMessage(NOTICE, "Connection Information for " + c.String() + ": ")
+}
+
+//
+// Join
+//
+// Joins (or creates) a channel
+func (c *IRCConnection) Join(e *Event) {
+	chanName := e.Message()
+	channel := c.server.GetChannel(chanName)
+
+	if channel == nil {
+		channel = NewIRChannel(chanName)
+		c.server.AddChannel(channel)
+	}
+
+	c.SendMessage(JOIN, ' ', chanName)
+
+	c.channels[chanName] = channel
 }
 
 //

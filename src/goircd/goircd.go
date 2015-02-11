@@ -36,7 +36,7 @@ func main() {
 	// Handle OS Signals
 	go handleSignals()
 
-	// Serve Forever
-	ServeForever()
+	s := CreateIRCServer()
 
+	s.ServeForever()
 }
