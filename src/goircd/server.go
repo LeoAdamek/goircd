@@ -12,18 +12,21 @@ import (
 	"net"
 )
 
-type IRCConnectionMap map[string]IRCConnection
-type IRCChannelMap map[string]IRCChannel
+type IRCConnectionMap map[string]*IRCConnection
+type IRCChannelMap map[string]*IRCChannel
 
 type IRCServer struct{
 	connections IRCConnectionMap;
 	channels IRCChannelMap
-	service_socket Socket
+	service_socket net.Listener
 }
 
 // Create a new IRCServer Instance
 func CreateIRCServer() IRCServer {
-	server := IRCServer{}
+	server := IRCServer{
+		channels: make(IRCChannelMap),
+		connections: make(IRCConnectionMap),
+	}
 
 	return server;
 }
@@ -32,11 +35,13 @@ func CreateIRCServer() IRCServer {
 // Serve Forever
 func (s *IRCServer) ServeForever() {
 
-	s.service_socket, err = net.Listen("tcp",":6667")
+	service_socket, err := net.Listen("tcp",":6667")
 
 	if err != nil {
 		log.Errorln("Couldn't listen on *:6667.", err)
 	}
+
+	s.service_socket = service_socket
 
 	log.Infoln("Listening on *6667")
 
@@ -51,7 +56,7 @@ func (s *IRCServer) ServeForever() {
 
 		user := NewIRCConnection(client, s)
 
-		s.connections[user.Ident()] = user
+		// s.connections[user.String()] = &user
 
 		// Each user is handled by a goroutine.
 		go user.HandleConnection()
@@ -68,7 +73,15 @@ func (s *IRCServer) FindChannel(chanName string) *IRCChannel {
 
 // Add a Channel
 func (s *IRCServer) AddChannel(channel *IRCChannel) {
-	s.channels[channel.GetName()] = channel
+
+	chanName := channel.GetName()
+
+	log.WithFields(
+		log.Fields{
+			"chanName": chanName,
+		}).Info("Adding Channel")
+
+	s.channels[chanName] = channel
 }
 
 func (s *IRCServer) RemoveChannel(channel *IRCChannel) {

@@ -30,6 +30,7 @@ func NewIRCConnection(connection net.Conn, server *IRCServer) IRCConnection {
 		conn: connection,
 		events: make(chan *Event, 32),
 		server: server,
+		channels: make(IRCChannelMap),
 	}
 }
 
@@ -146,15 +147,17 @@ func (c *IRCConnection) Info() {
 //
 // Joins (or creates) a channel
 func (c *IRCConnection) Join(e *Event) {
-	chanName := e.Message()
-	channel := c.server.GetChannel(chanName)
+	chanName := e.Args[0]
+	channel := c.server.FindChannel(chanName)
 
 	if channel == nil {
-		channel = NewIRChannel(chanName)
+		new_channel := CreateIRCChannel(chanName, c)
+
+		channel = &new_channel
 		c.server.AddChannel(channel)
 	}
 
-	c.SendMessage(JOIN, ' ', chanName)
+	c.SendMessage(JOIN, chanName)
 
 	c.channels[chanName] = channel
 }

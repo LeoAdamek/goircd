@@ -1,18 +1,29 @@
 //
 // IRC Channel
 //
-package goircd
+package main
 
+import (
+//	log "github.com/Sirupsen/logrus"
+)
 
 type IRCChannel struct{
-	string name
+	name string
 	connections IRCConnectionMap
+	owner *IRCConnection
 	events chan *Event
 }
 
 
-func CreateIRChannel(chanName string, chanOwner *IRCConnection) IRCChannel {
-	channel := IRCChannel{}
+func CreateIRCChannel(chanName string, chanOwner *IRCConnection) IRCChannel {
+	channel := IRCChannel{
+		name: chanName,
+		owner: chanOwner,
+		events: make(chan *Event),
+		connections: make(IRCConnectionMap),
+	}
+
+	return channel
 }
 
 // We have to protect the name from changing
@@ -23,14 +34,13 @@ func (c *IRCChannel) GetName() string {
 
 // Add a connection
 func (c *IRCChannel) AddConnection(conn *IRCConnection) error {
-	c.connections[conn.Ident()] = conn
-
+	c.connections[conn.String()] = conn
 	return nil
 }
 
 // Remove a connection
 func (c *IRCChannel) RemoveConnection(conn *IRCConnection) error {
-	c.connections[conn.Ident()] = nil
+	c.connections[conn.String()] = nil
 
 	return nil
 }
