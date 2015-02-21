@@ -68,6 +68,12 @@ func (c *IRCConnection) callback(e *Event) {
 		
 	case INFO:
 		c.Info()
+
+	case PRIVMSG:
+		c.PrivateMessage(e)
+
+	case LIST:
+		Server.ListChannels(c)
 	}
 
 }

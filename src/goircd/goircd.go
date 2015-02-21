@@ -11,6 +11,8 @@ package main
 import (
 	log "github.com/Sirupsen/logrus"
 )
+
+var Server IRCServer
 //
 // Main Function
 //
@@ -33,10 +35,14 @@ func main() {
 	config.LoadFile(flags.ConfigFile)
 	go config.ReloadBySignal(flags.ConfigFile)
 
+	if flags.Debug {
+		log.SetLevel(log.DebugLevel)
+	}
+
 	// Handle OS Signals
 	go handleSignals()
 
-	s := CreateIRCServer()
+	Server := CreateIRCServer()
 
-	s.ServeForever()
+	Server.ServeForever()
 }

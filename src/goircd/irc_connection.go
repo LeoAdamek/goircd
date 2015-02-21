@@ -84,7 +84,7 @@ func (c *IRCConnection) HandleMessage(message string) {
 			"command" : event.Code,
 			"user" : event.User,
 			"args" : event.Args,
-		}).Info("Client Command")
+		}).Debug("Client Command")
 	
 	c.callback(event)
 
@@ -109,7 +109,7 @@ func (c *IRCConnection) SendMessage(parts ...string) {
 		log.Fields{
 			"ident" : c.String(),
 			"message" : reply,
-		}).Info("Sent Reply")
+		}).Debug("Sent Reply")
 	
 	c.conn.Write([]byte(reply))
 
@@ -140,6 +140,20 @@ func (c *IRCConnection) Welcome() {
 // Sends the client their connection info
 func (c *IRCConnection) Info() {
 	c.SendMessage(NOTICE, "Connection Information for " + c.String() + ": ")
+}
+
+//
+// Private Message
+//
+// Handle a private message event
+func (c *IRCConnection) PrivateMessage(e *Event) {
+	target := e.Args[0]
+
+	if target[0] == '#' || target[0] == '&' {
+		channel := c.server.FindChannel(target)
+
+		channel.DistributeMessage(e)
+	}
 }
 
 //

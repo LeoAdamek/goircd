@@ -12,6 +12,7 @@ import (
 
 type FlagOptions struct {
 	ConfigFile string
+	Debug bool
 }
 
 var flags FlagOptions
@@ -27,6 +28,7 @@ func (f *FlagOptions) LoadFlags() bool {
 	log.Infoln("Loading Options")
 	
 	flag.StringVar(&f.ConfigFile, "config", "config.json", "Configuration File")
+	flag.BoolVar(&f.Debug, "debug", false,"Debug Mode")
 
 	flag.Parse()
 

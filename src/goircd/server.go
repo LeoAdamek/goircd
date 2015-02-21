@@ -87,3 +87,15 @@ func (s *IRCServer) AddChannel(channel *IRCChannel) {
 func (s *IRCServer) RemoveChannel(channel *IRCChannel) {
 	s.channels[channel.GetName()] = nil
 }
+
+func (s *IRCServer) ListChannels(client *IRCConnection) {
+
+	client.SendMessage(REP_LIST_START, "Channel", "Topic")
+	
+	
+	for i := range s.channels {
+		client.SendMessage(REP_LIST, i, s.channels[i].Topic)
+	}
+
+	client.SendMessage(REP_LIST_END, "End", "of", "/LIST")
+}

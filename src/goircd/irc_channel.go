@@ -4,7 +4,7 @@
 package main
 
 import (
-//	log "github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 )
 
 type IRCChannel struct{
@@ -46,4 +46,22 @@ func (c *IRCChannel) RemoveConnection(conn *IRCConnection) error {
 	c.connections[conn.String()] = nil
 
 	return nil
+}
+
+// Distribute a message
+func (c *IRCChannel) DistributeMessage(e *Event) {
+
+	log.WithFields(
+		log.Fields{
+			"targets": len(c.connections)- 1,
+			"message": e.Message(),
+		}).Debug("Distributing Message")
+
+	var u *IRCConnection
+	
+	for i := range c.connections {
+		u = c.connections[i]
+
+		go u.SendMessage(PRIVMSG, e.User, e.Message())
+	}
 }

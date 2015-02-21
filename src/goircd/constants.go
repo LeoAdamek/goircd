@@ -30,6 +30,8 @@ const (
 	PING = "PING"
 	PONG = "PONG"
 
+	LIST = "LIST"
+
 	OPER = "OPER"
 
 	NOTICE = "NOTICE"
@@ -37,7 +39,11 @@ const (
 	// Numeric Server Response Codes
 	REP_WELCOME = "001"
 	REP_TOPIC = "332"
-)
+	
+	REP_LIST_START = "321"
+	REP_LIST_END = "322"
+	REP_LIST = "323"
 
+)
 
 	
